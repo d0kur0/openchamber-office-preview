@@ -1,3 +1,9 @@
+## [0.2.0](https://github.com/d0kur0/openchamber-office-preview/compare/v0.1.1...v0.2.0) (2026-10-27)
+
+### Features
+
+* refresh Office preview themes and readable zoom ([cfa7fb4](https://github.com/d0kur0/openchamber-office-preview/commit/cfa7fb4d25e12ff99bcf9cc14235e4529b9c8cc7))
+
 ## [0.1.1](https://github.com/d0kur0/openchamber-office-preview/compare/v0.1.0...v0.1.1) (2026-10-27)
 
 ### Bug Fixes
