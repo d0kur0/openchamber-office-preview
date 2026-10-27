@@ -58,11 +58,20 @@ npm test
 
 ## Релизы
 
-CI проверяет push в `main` и pull request. Для выпуска обновите версию
-в package.json и package-lock.json, выполните проверки и отправьте тег `vX.Y.Z`.
-Workflow `release.yml` сверяет тег с версией, собирает расширение, публикует
-npm-пакет и GitHub Release с ZIP, TGZ и SHA256SUMS.txt. Повторный запуск
-не перезаписывает уже существующую версию npm.
+Workflow `release.yml` проверяет push в `main` и pull request. После успешных
+проверок в main запускается semantic-release. Версии и теги вручную не меняются:
+
+- `fix: ...` выпускает patch.
+- `feat: ...` выпускает minor.
+- `feat!: ...` или `BREAKING CHANGE:` выпускает major.
+- `ci(release): ...` выпускает patch для изменений механизма выпуска.
+- Обычные `docs:`, `test:`, `chore:` и `ci:` сами по себе релиз не создают.
+
+Semantic-release обновляет package.json и lockfile, ведёт CHANGELOG.md,
+коммитит версию и готовую сборку с `[skip ci]`, создаёт тег и публикует npm
+и GitHub Release с ZIP, TGZ и SHA256SUMS.txt. Одновременные выпуски сериализованы.
+В pull request выполняются только проверки. Ручной запуск workflow на main
+повторяет анализ коммитов; без новых изменений для выпуска версия не создаётся.
 
 Для npm используется trusted publisher GitHub Actions: owner `d0kur0`,
 repository `openchamber-office-preview`, workflow `release.yml`.
@@ -70,8 +79,10 @@ repository `openchamber-office-preview`, workflow `release.yml`.
 Workflow требует разрешения на прямой `npm publish`; постоянный NPM_TOKEN
 в GitHub Secrets не требуется. [Документация npm](https://docs.npmjs.com/trusted-publishers/).
 
-Первая публикация: `npm login`, затем `npm publish --access public`.
-npm может потребовать подтверждение владельца или настройку 2FA.
+До первого автоматического выпуска нужны ручная публикация владельцем и
+настройка trusted publisher. Workflow останавливается до создания новых тегов,
+если пакет ещё не существует. Первая публикация: `npm login`, затем
+`npm publish --access public`; npm требует 2FA или подходящий granular token.
 
 ## Примеры
 
