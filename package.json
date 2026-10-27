@@ -1,0 +1,53 @@
+{
+  "name": "openchamber-office-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local read-only Office previews in OpenChamber Files",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "openchamber": {
+    "apiVersion": 1,
+    "engines": {
+      "openchamber": ">=2.5.2"
+    },
+    "contributes": {
+      "fileEditors": [
+        {
+          "id": "office-viewer",
+          "title": "Office Preview",
+          "match": [
+            "*.xlsx",
+            "*.xlsm",
+            "*.docx",
+            "*.pptx"
+          ],
+          "entry": "panel/index.html",
+          "content": "binary"
+        }
+      ],
+      "panel": {
+        "id": "office-preview",
+        "icon": "file-text",
+        "entry": "panel/index.html",
+        "name": "Office"
+      }
+    }
+  },
+  "dependencies": {
+    "@openchamber/sdk": "2.5.2",
+    "@office-kit/pptx": "0.28.0",
+    "@office-kit/pptx-preview": "0.21.0",
+    "docx-preview": "0.4.1",
+    "exceljs": "4.4.0",
+    "chart.js": "4.5.1",
+    "dompurify": "3.3.0",
+    "fflate": "0.8.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}
