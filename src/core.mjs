@@ -40,3 +40,12 @@ export function cellValue(value){
   return value;
 }
 export function safeFilename(name){return String(name||'Документ').split(/[\\/]/).pop();}
+
+// Fit is explicit; automatic spreadsheet previews prioritize readable text.
+export function previewScale(mode,kind,available,natural){
+  const fit=Math.max(.1,Math.min(1,Math.max(1,available)/Math.max(1,natural)));
+  if(mode==='fit')return fit;
+  if(mode==='auto')return kind==='excel'?1.6:Math.max(kind==='slides'?.6:.85,fit);
+  const value=Number(mode);
+  return Number.isFinite(value)&&value>0?Math.max(.25,Math.min(4,value)):1;
+}

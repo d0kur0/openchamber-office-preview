@@ -5,16 +5,16 @@ import {loadPresentation,getSlides} from '@office-kit/pptx';
 import {renderSlideToSvg} from '@office-kit/pptx-preview';
 import DOMPurify from 'dompurify';
 import {renderExcel} from './excel';
-import {checkArchive,safeFilename} from './core.mjs';
+import {checkArchive,safeFilename,previewScale} from './core.mjs';
 
 const host=connectHost();
 const root=document.querySelector('#app')!;
-root.innerHTML=`<main class="app"><header class="toolbar"><div id="kind" class="file-icon" aria-hidden="true">OF</div><div class="file-meta"><div class="filename" id="filename">Office Preview</div><div class="file-subtitle" id="subtitle">Excel · Word · PowerPoint</div></div><div class="slide-nav" id="slide-nav" hidden><button id="previous" aria-label="Предыдущий слайд">←</button><span id="slide-count" class="slide-count"></span><button id="next" aria-label="Следующий слайд">→</button></div><div class="zoom"><button id="zoom-out" aria-label="Уменьшить масштаб">−</button><select id="zoom" aria-label="Масштаб"><option value="fit">По ширине</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="1.6">160%</option></select><button id="zoom-in" aria-label="Увеличить масштаб">+</button></div><button id="choose" class="open">Открыть файл</button><input id="file-input" class="sr-only" type="file" accept=".xlsx,.xlsm,.docx,.pptx" aria-label="Выбрать офисный файл"></header><div id="formula" class="formula-bar" hidden><span id="address" class="address"></span><span class="formula-mark">fx</span><span id="formula-value" class="formula-value"></span></div><section id="viewport" class="viewport" aria-label="Просмотр документа"><div id="content" class="content"></div></section><nav id="tabs" class="sheet-tabs" role="tablist" aria-label="Листы книги" hidden></nav><footer class="footer"><span id="status" role="status">Готов к открытию файла</span><span id="mode">Только просмотр · локально</span></footer></main>`;
+root.innerHTML=`<main class="app"><header class="toolbar"><div id="kind" class="file-icon" aria-hidden="true">▤</div><div class="file-meta"><div class="filename" id="filename">Office Preview</div><div class="file-subtitle" id="subtitle">Excel · Word · PowerPoint</div></div><div class="slide-nav" id="slide-nav" hidden><button id="previous" aria-label="Предыдущий слайд">←</button><span id="slide-count" class="slide-count"></span><button id="next" aria-label="Следующий слайд">→</button></div><div class="zoom"><button id="zoom-out" aria-label="Уменьшить масштаб" title="Уменьшить масштаб"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4M7.5 10.5h6"/></svg></button><select id="zoom" aria-label="Масштаб"><option value="auto">Авто</option><option value="fit">По ширине</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="1.6">160%</option><option value="1.75">175%</option><option value="2">200%</option><option value="2.5">250%</option><option value="3">300%</option><option value="4">400%</option></select><button id="zoom-in" aria-label="Увеличить масштаб" title="Увеличить масштаб"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4M7.5 10.5h6m-3-3v6"/></svg></button></div><button id="choose" class="open"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h6l2 2h10l-3 11H3V7Zm0 0V4h6l2 3"/></svg><span>Открыть файл</span></button><input id="file-input" class="sr-only" type="file" accept=".xlsx,.xlsm,.docx,.pptx" aria-label="Выбрать офисный файл"></header><div id="formula" class="formula-bar" hidden><span id="address" class="address"></span><span class="formula-mark">fx</span><span id="formula-value" class="formula-value"></span></div><section id="viewport" class="viewport" aria-label="Просмотр документа"><div id="content" class="content"></div></section><nav id="tabs" class="sheet-tabs" role="tablist" aria-label="Листы книги" hidden></nav><footer class="footer"><span id="status" role="status">Готов к открытию файла</span><span id="mode">Только просмотр · локально</span></footer></main>`;
 const $=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const content=$('content'),viewport=$('viewport'),tabs=$('tabs');
 let original:Uint8Array|null=null,version='',generation=0,dispose:(()=>void)|null=null,scale=1;
 let slideIndex=0,slides:any[]=[],presentation:any=null;
-let filename='';
+let filename='',kind='empty';
 const cleanSvg=(s:string)=>DOMPurify.sanitize(s,{USE_PROFILES:{svg:true,svgFilters:true},ADD_TAGS:['image'],ADD_ATTR:['href','xlink:href']});
 function message(title:string,body:string,error=false){
  content.replaceChildren();const box=document.createElement('div');box.className='empty';
@@ -22,22 +22,33 @@ function message(title:string,body:string,error=false){
  const p=document.createElement('p');p.textContent=body;box.append(h,p);content.append(box);
 }
 function empty(){
- message('Документ рядом с чатом','Откройте XLSX, DOCX или PPTX в Files, выберите файл кнопкой сверху или перетащите его сюда.');
- const icons=document.createElement('div');icons.className='format-icons';
- for(const name of ['Excel','Word','PowerPoint']){const e=document.createElement('span');e.className='format-pill';e.textContent=name;icons.append(e);}content.firstElementChild?.prepend(icons);
+ kind='empty';
+ message('Откройте документ','Excel, Word или PowerPoint. Перетащите файл сюда или выберите его на компьютере.');
+ const illustration=document.createElement('div');illustration.className='empty-document';
+ illustration.innerHTML='<svg viewBox="0 0 64 72" aria-hidden="true"><path d="M13 3h25l13 14v51H13z"/><path d="M38 3v15h13M23 32h18M23 41h18M23 50h12"/></svg>';
+ const button=document.createElement('button');button.className='empty-open';button.textContent='Выбрать файл';button.onclick=()=>$<HTMLInputElement>('file-input').click();
+ content.firstElementChild?.prepend(illustration);content.firstElementChild?.append(button);
+ zoom();
 }
 function zoom(){
- const setting=($<HTMLSelectElement>('zoom')).value;
- // CSS zoom keeps scroll geometry consistent for large pages and spreadsheets.
- content.style.zoom='1';content.style.width='max-content';content.style.minWidth='100%';
- const natural=Math.max(content.scrollWidth,content.getBoundingClientRect().width);
- scale=setting==='fit'?Math.min(1,Math.max(.25,(viewport.clientWidth-36)/Math.max(natural,1))):Number(setting);
- content.style.zoom=String(scale);content.style.minWidth=`${100/scale}%`;
+ const select=$<HTMLSelectElement>('zoom'),setting=select.value;
+ content.style.zoom='1';content.style.width='max-content';content.style.minWidth='0';
+ const target=content.querySelector('.grid-wrap, section.docx, .slide-layout') as HTMLElement|null;
+ const natural=target?Math.max(target.scrollWidth,target.getBoundingClientRect().width):content.scrollWidth;
+ const padding=parseFloat(getComputedStyle(viewport).paddingLeft)+parseFloat(getComputedStyle(viewport).paddingRight);
+ scale=kind==='empty'?1:previewScale(setting,kind,viewport.clientWidth-padding,natural);
+ content.style.zoom=String(scale);
+ content.style.minWidth=`${Math.max(0,viewport.clientWidth-padding)/scale}px`;
+ const auto=select.querySelector('option[value="auto"]')!;
+ auto.textContent=kind==='empty'?'Авто':`Авто · ${Math.round(previewScale('auto',kind,viewport.clientWidth-padding,natural)*100)}%`;
+ $('zoom-in').toggleAttribute('disabled',kind==='empty'||scale>=4);
+ $('zoom-out').toggleAttribute('disabled',kind==='empty'||scale<=.25);
+ select.disabled=kind==='empty';
 }
 let resizeTimer:any;new ResizeObserver(()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(zoom,60);}).observe(viewport);
 $<HTMLSelectElement>('zoom').onchange=zoom;
 function changeScale(delta:number){
- const select=$<HTMLSelectElement>('zoom');const next=Math.min(1.6,Math.max(.5,Math.round((scale+delta)*100)/100));
+ const select=$<HTMLSelectElement>('zoom');const next=Math.min(4,Math.max(.25,Math.round((scale+delta)*100)/100));
  let option=Array.from(select.options).find(x=>Number(x.value)===next);
  if(!option){option=new Option(`${Math.round(next*100)}%`,String(next));select.add(option);}
  select.value=String(next);zoom();
@@ -62,7 +73,7 @@ document.addEventListener('keydown',e=>{if(presentation&&e.target===document.bod
 
 async function open(name:string,bytes:Uint8Array,fromHost:boolean){
  const token=++generation;dispose?.();dispose=null;original=bytes;filename=safeFilename(name);version=`${bytes.length}-${Date.now()}`;
- presentation=null;slides=[];slideIndex=0;tabs.replaceChildren();tabs.hidden=true;$('formula').hidden=true;$('slide-nav').hidden=true;
+ kind='empty';$<HTMLSelectElement>('zoom').value='auto';presentation=null;slides=[];slideIndex=0;tabs.replaceChildren();tabs.hidden=true;$('formula').hidden=true;$('slide-nav').hidden=true;
  $('filename').textContent=filename;$('status').textContent='Открываем документ…';viewport.className='viewport';
  $('mode').textContent='Только просмотр · локально';$('choose').hidden=fromHost;
  content.style.zoom='1';content.replaceChildren();
@@ -75,11 +86,12 @@ async function open(name:string,bytes:Uint8Array,fromHost:boolean){
   const [symbol,label,cls]=kinds[ext!];$('kind').textContent=symbol;$('kind').className=`file-icon ${cls}`;
   $('subtitle').textContent=`${label} · ${(bytes.length/1024).toFixed(0)} КБ · только чтение`;
   if(ext==='xlsx'||ext==='xlsm'){
-   viewport.classList.add('excel');tabs.hidden=false;$('formula').hidden=false;$('mode').textContent='Сохранённые значения формул';
+   kind='excel';viewport.classList.add('excel');tabs.hidden=false;$('formula').hidden=false;$('mode').textContent='Сохранённые значения формул';
    const page=document.createElement('div');
    const cleanup=await renderExcel(bytes,page,tabs,(address,value)=>{$('address').textContent=address;$('formula-value').textContent=value;},text=>{$('status').textContent=text;queueMicrotask(zoom);});
    if(token!==generation){cleanup();return;}content.replaceChildren(page);dispose=cleanup;
   }else if(ext==='docx'){
+   kind='word';
    const page=document.createElement('div');page.className='docx-content';
    await renderAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),page,undefined,{inWrapper:true,breakPages:true,ignoreWidth:false,ignoreHeight:false,renderHeaders:true,renderFooters:true,renderFootnotes:true,useBase64URL:true,renderAltChunks:false});
    if(token!==generation)return;
@@ -89,7 +101,7 @@ async function open(name:string,bytes:Uint8Array,fromHost:boolean){
    for(const el of Array.from(page.querySelectorAll('[src]'))){const src=el.getAttribute('src')||'';if(!/^(data:|blob:)/.test(src))el.removeAttribute('src');}
    content.replaceChildren(page);$('status').textContent=`${page.querySelectorAll('section.docx').length||1} стр. · Word`;
   }else{
-   const pres=await loadPresentation(bytes);if(token!==generation)return;presentation=pres;slides=getSlides(pres);
+   kind='slides';const pres=await loadPresentation(bytes);if(token!==generation)return;presentation=pres;slides=getSlides(pres);
    if(!slides.length)throw new Error('В презентации нет слайдов.');
    const layout=document.createElement('div');layout.className='slide-layout';const rail=document.createElement('nav');rail.className='slide-rail';rail.setAttribute('aria-label','Слайды');
    for(let i=0;i<Math.min(slides.length,100);i++){
@@ -102,12 +114,12 @@ async function open(name:string,bytes:Uint8Array,fromHost:boolean){
   zoom();setTimeout(zoom,100);
  }catch(error){
   if(token!==generation)return;tabs.hidden=true;$('formula').hidden=true;$('slide-nav').hidden=true;
-  const reason=error instanceof Error?error.message:String(error);
+  kind='empty';const reason=error instanceof Error?error.message:String(error);
   message('Не удалось открыть документ',reason,false);content.querySelector('h2')?.classList.add('error-title');
-  $('status').textContent='Исходный файл не изменён';$('choose').hidden=false;
+  $('status').textContent='Исходный файл не изменён';$('choose').hidden=false;zoom();
  }
 }
-host.onReady(ctx=>{applyHostReady(ctx,document.documentElement);document.body.dataset.theme=ctx.theme.mode;});
+host.onReady(ctx=>{applyHostReady(ctx,document.documentElement);document.body.dataset.theme=ctx.theme.mode;document.documentElement.dataset.theme=ctx.theme.mode;zoom();});
 host.onFileOpen(file=>{if(file.encoding==='binary')void open(file.name,new Uint8Array(file.bytes),true);else message('Нужен офисный файл','Откройте XLSX, DOCX или PPTX.');});
 host.onFileSnapshot(()=>{if(!original)throw new Error('No document open');return{bytes:original,version};});
 window.addEventListener('pagehide',()=>{dispose?.();host.dispose();});
