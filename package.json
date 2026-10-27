@@ -1,13 +1,14 @@
 {
-  "name": "openchamber-office-viewer",
+  "name": "openchamber-office-preview",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Local read-only Office previews in OpenChamber Files",
   "license": "MIT",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "check:package": "node scripts/verify-package.mjs",
+    "prepack": "npm run build && npm run check:package"
   },
   "openchamber": {
     "apiVersion": 1,
@@ -37,7 +38,8 @@
       }
     }
   },
-  "dependencies": {
+  "devDependencies": {
+    "esbuild": "0.25.12",
     "@openchamber/sdk": "2.5.2",
     "@office-kit/pptx": "0.28.0",
     "@office-kit/pptx-preview": "0.21.0",
@@ -47,7 +49,31 @@
     "dompurify": "3.3.0",
     "fflate": "0.8.2"
   },
-  "devDependencies": {
-    "esbuild": "0.25.12"
-  }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d0kur0/openchamber-office-preview.git"
+  },
+  "homepage": "https://github.com/d0kur0/openchamber-office-preview#readme",
+  "bugs": {
+    "url": "https://github.com/d0kur0/openchamber-office-preview/issues"
+  },
+  "files": [
+    "panel/",
+    "licenses/",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "openchamber",
+    "extension",
+    "office",
+    "xlsx",
+    "docx",
+    "pptx",
+    "preview"
+  ]
 }

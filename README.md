@@ -1,4 +1,8 @@
-# Office Preview для OpenChamber
+# OpenChamber Office Preview
+
+Read-only Excel, Word and PowerPoint previews inside OpenChamber Files.
+
+![Excel preview](https://raw.githubusercontent.com/d0kur0/openchamber-office-preview/main/docs/images/excel.png)
 
 Локальный просмотрщик Excel, Word и PowerPoint внутри Files. Исходный файл не
 редактируется. Нет фонового сервиса, запросов к внешним сайтам, прав на папки
@@ -20,7 +24,22 @@
 
 ## Установка
 
-OpenChamber >=2.5.2 → Settings → Extensions → Add extension → выбрать эту папку.
+Требуется OpenChamber >=2.5.2.
+
+1. Откройте Settings → Extensions → Add extension.
+2. Вставьте `https://github.com/d0kur0/openchamber-office-preview` и нажмите Add.
+3. Откройте XLSX, DOCX или PPTX в Files.
+
+Node.js и npm для установки в OpenChamber не нужны: сборка включена в репозиторий.
+Можно установить ZIP из [Releases](https://github.com/d0kur0/openchamber-office-preview/releases)
+или выбрать локальную папку клона. Релизный ZIP содержит папку `office-preview`
+с манифестом и готовой сборкой.
+
+Пакет также распространяется в npm как `openchamber-office-preview`.
+После `npm install openchamber-office-preview` выберите абсолютный путь
+`node_modules/openchamber-office-preview` в Extensions. Это расширение
+OpenChamber, его не нужно добавлять в `plugin` конфигурации OpenCode.
+
 Файлы XLSX/DOCX/PPTX после открытия в Files используют новый просмотрщик.
 Панель Office также принимает выбранный пользователем файл и drag-and-drop.
 Можно отключить расширение в Settings → Extensions, штатные просмотры вернутся.
@@ -36,3 +55,31 @@ npm test
 В репе сохранён собранный `panel/main.js`, OpenChamber не собирает расширения.
 Зависимости и их лицензии перечислены в THIRD_PARTY_NOTICES.md, точные версии
 зафиксированы package-lock.json. Ключи и пользовательские документы не нужны.
+
+## Релизы
+
+CI проверяет push в `main` и pull request. Для выпуска обновите версию
+в package.json и package-lock.json, выполните проверки и отправьте тег `vX.Y.Z`.
+Workflow `release.yml` сверяет тег с версией, собирает расширение, публикует
+npm-пакет и GitHub Release с ZIP, TGZ и SHA256SUMS.txt. Повторный запуск
+не перезаписывает уже существующую версию npm.
+
+Для npm используется trusted publisher GitHub Actions: owner `d0kur0`,
+repository `openchamber-office-preview`, workflow `release.yml`.
+Его необходимо настроить в npm package settings после первой ручной публикации.
+Workflow требует разрешения на прямой `npm publish`; постоянный NPM_TOKEN
+в GitHub Secrets не требуется. [Документация npm](https://docs.npmjs.com/trusted-publishers/).
+
+Первая публикация: `npm login`, затем `npm publish --access public`.
+npm может потребовать подтверждение владельца или настройку 2FA.
+
+## Примеры
+
+На снимках только синтетические данные.
+
+![Word preview](https://raw.githubusercontent.com/d0kur0/openchamber-office-preview/main/docs/images/word.png)
+![PowerPoint preview](https://raw.githubusercontent.com/d0kur0/openchamber-office-preview/main/docs/images/powerpoint.png)
+
+Независимое расширение сообщества. Не является продуктом Microsoft или
+официальным расширением команды OpenChamber. Лицензия MIT; лицензии библиотек
+сохранены в `licenses/` и THIRD_PARTY_NOTICES.md.
